@@ -31,7 +31,7 @@ func main() {
 			return
 		}
 
-		fmt.Printf("%v\n", state.Fields)
+		fmt.Printf("%v\n", state.List())
 
 		return
 	}
@@ -55,7 +55,7 @@ func main() {
 			panic(err)
 		}
 
-		if input == "exit" || input == "quit" {
+		if input == "exit" || input == "quit" || input == "q" {
 			break
 		}
 

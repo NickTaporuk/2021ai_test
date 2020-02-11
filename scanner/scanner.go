@@ -5,123 +5,171 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"path/filepath"
 	"strings"
 
+	"github.com/NickTaporuk/2021ai_test/operators"
+	"github.com/NickTaporuk/2021ai_test/stack"
 	"github.com/NickTaporuk/2021ai_test/token"
+	"github.com/NickTaporuk/2021ai_test/utils"
+	"github.com/fatih/set"
 )
 
-// Compute
-func Compute(in string) (float64, error) {
-
-	//	sc := initScanner(in)
-	//	//var prev token.Token = token.ILLEGAL
-	//	//var back int = -1
-	//
-	//Scan:
-	//	for {
-	//		pos, tok, lit := sc.Scan()
-	//
-	//		fmt.Println(pos, tok, lit)
-	//		//break
-	//
-	//		switch {
-	//		case tok == token.EOF:
-	//			break Scan
-	//
-	//			//case tok == "SUM".(int): {}
-	//		}
-	//
-	//	}
-
-	return 0, nil
-
+// Scanner is the interface that wraps the basic Scan method.
+//
+// Implementations must not retain p.
+type Scanner interface {
+	Scan() (data set.Interface, err error)
 }
 
 // Scanner represents a lexical scanner.
-type Scanner struct {
+type LexicalScanner struct {
 	r *bufio.Reader
 }
 
-// NewScanner returns a new instance of Scanner.
-func NewScanner(r io.Reader) *Scanner {
-	return &Scanner{r: bufio.NewReader(r)}
+// NewLexicalScanner returns a new instance of LexicalScanner.
+func NewLexicalScanner(r io.Reader) *LexicalScanner {
+	return &LexicalScanner{r: bufio.NewReader(r)}
 }
 
 // read reads the next rune from the bufferred reader.
 // Returns the rune(0) if an error occurs (or io.EOF is returned).
-func (s *Scanner) read() rune {
+func (s *LexicalScanner) read() rune {
 	ch, _, err := s.r.ReadRune()
 	if err != nil {
 		return eof
 	}
+
 	return ch
 }
 
 // unread places the previously read rune back on the reader.
-func (s *Scanner) unread() { _ = s.r.UnreadRune() }
+func (s *LexicalScanner) unread() { _ = s.r.UnreadRune() }
 
 // Scan returns the next token and literal value.
+func (s *LexicalScanner) Scan() (res set.Interface, err error) {
+	// validateBrackets
+	var validateBrackets int
+	//sets := stack.NewSetStack()
+	sets := make(map[int][]set.Interface)
+	ops := stack.NewStringStack()
+	//
+	var prev token.Token
+loop:
+	for {
 
-func (s *Scanner) Scan() (tok token.Token, lit string, err error) {
-	// Read the next rune.
-	ch := s.read()
-	return s.checkToken(ch, lit)
-}
+		// Read the next rune.
+		ch := s.read()
 
-func (s *Scanner) checkToken(ch rune, lit string) (token.Token, string, error) {
-	if isWhitespace(ch) {
-		s.unread()
-		tok, lit := s.scanWhitespace()
-		return tok, lit, nil
-	} else if isLetter(ch) {
-		s.unread()
-		tok, lit := s.scanIdent()
-		println(tok)
-		switch lit {
-		case string(token.DIF):
-			return token.DIF, string(token.DIF), nil
-		case string(token.SUM):
-			return token.SUM, string(token.SUM), nil
-		case string(token.INT):
-			return token.INT, string(token.INT), nil
-		default:
-			inspect := string(ch)
-			if strings.TrimSpace(lit) != "" {
-				inspect += " (`" + lit + "`)"
+		if isWhitespace(ch) {
+			s.unread()
+			s.scanWhitespace()
+			continue
+			//return tok, lit, nil
+		} else if isLetter(ch) {
+			s.unread()
+			tok, lit := s.scanIdent()
+
+			if isFile(lit) {
+				data, err := utils.ReadDataFromFile(lit)
+				if err != nil {
+					return nil, err
+				}
+
+				if data != nil {
+					sets[validateBrackets] = append(sets[validateBrackets], data)
+				}
+				prev = tok
+				continue
 			}
 
-			return token.Token(ch), string(ch), errors.New("Unrecognized token " + inspect + " in expression")
+			if operators.IsOperator(lit) {
+				switch lit {
+				case operators.DifferentOperatorLex:
+					ops.Push(operators.DifferentOperatorLex)
+					prev = tok
+					continue
+				case operators.UnionOperatorLex:
+					ops.Push(operators.UnionOperatorLex)
+					prev = tok
+					continue
+				case operators.IntersectionOperatorLex:
+					ops.Push(operators.IntersectionOperatorLex)
+					prev = tok
+					continue
+				default:
+					inspect := string(ch)
+					if strings.TrimSpace(lit) != "" {
+						inspect += " (`" + lit + "`)"
+					}
+
+					return nil, errors.New("Unrecognized token " + inspect + " in expression")
+				}
+			}
+
+		}
+
+		// Otherwise read the individual character.
+		switch ch {
+		case eof:
+			break loop
+		case token.LBRACKETRUNE:
+			{
+				validateBrackets += 1
+				prev = token.LBRACKETRUNE
+				continue
+			}
+		case token.RBRACKETRUNE:
+			{
+
+				if prev == 1 {
+					print("prev = 1")
+				}
+				op, err := ops.Pop()
+				if err != nil {
+					return nil, err
+				}
+
+				d := sets[validateBrackets]
+
+				res, err = runOp(op, d)
+				//delete(sets, validateBrackets)
+				validateBrackets -= 1
+
+				if len(sets) > 0 {
+					sets[validateBrackets] = append(sets[validateBrackets], res)
+				}
+
+				prev = token.RBRACKETRUNE
+
+				continue
+			}
+		default:
+			inspect := string(ch)
+			//if strings.TrimSpace(lit) != "" {
+			//	inspect += " (`" + lit + "`)"
+			//}
+
+			return nil, errors.New("Unrecognized token " + inspect + " in expression")
 		}
 	}
 
-	// Otherwise read the individual character.
-	switch ch {
-	case eof:
-		return token.EOF, string(eof), nil
-	case token.LBRACKETRUNE:
-		{
-			return token.LBRACKET, string(token.LBRACKETRUNE), nil
-		}
-	case token.RBRACKETRUNE:
-		{
-			return token.RBRACKET, string(token.RBRACKETRUNE), nil
-		}
-	case '.':
-		{
-			return '.', ".", nil
-		}
-	default:
-		inspect := string(ch)
-		if strings.TrimSpace(lit) != "" {
-			inspect += " (`" + lit + "`)"
-		}
+	return res, nil
+}
 
-		return token.Token(ch), string(ch), errors.New("Unrecognized token " + inspect + " in expression")
+func runOp(opName string, data []set.Interface) (set.Interface, error) {
+	op := operators.FindOperatorFromString(opName)
+	if op == nil {
+		return nil, errors.New("Either unmatched paren or unrecognized operator")
 	}
+
+	res := op.Operation(data...)
+
+	return res, nil
 }
 
 // scanWhitespace consumes the current rune and all contiguous whitespace.
-func (s *Scanner) scanWhitespace() (tok token.Token, lit string) {
+func (s *LexicalScanner) scanWhitespace() (tok token.Token, lit string) {
 	// Create a buffer and read the current character into it.
 	var buf bytes.Buffer
 	buf.WriteRune(s.read())
@@ -143,7 +191,7 @@ func (s *Scanner) scanWhitespace() (tok token.Token, lit string) {
 }
 
 // scanIdent consumes the current rune and all contiguous ident runes.
-func (s *Scanner) scanIdent() (tok token.Token, lit string) {
+func (s *LexicalScanner) scanIdent() (tok token.Token, lit string) {
 	// Create a buffer and read the current character into it.
 	var buf bytes.Buffer
 	buf.WriteRune(s.read())
@@ -153,21 +201,13 @@ func (s *Scanner) scanIdent() (tok token.Token, lit string) {
 	for {
 		if ch := s.read(); ch == eof {
 			break
-		} else if !isLetter(ch) && !isDigit(ch) && ch != '_' {
+		} else if !isLetter(ch) && !isDigit(ch) {
 			s.unread()
 			break
 		} else {
 			_, _ = buf.WriteRune(ch)
 		}
 	}
-	//
-	//// If the string matches a keyword then return that keyword.
-	//switch strings.ToUpper(buf.String()) {
-	//case "SELECT":
-	//	return SELECT, buf.String()
-	//case "FROM":
-	//	return FROM, buf.String()
-	//}
 
 	// Otherwise return as a regular identifier.
 	return token.IDENT, buf.String()
@@ -179,8 +219,16 @@ func isWhitespace(ch rune) bool {
 	return ch == ' ' || ch == '\t' || ch == '\n'
 }
 
+// isLetter
 func isLetter(ch rune) bool {
 	return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch == '.') || (ch == '/')
+}
+
+// isFile
+func isFile(lit string) bool {
+	ext := filepath.Ext(lit)
+
+	return ext != ""
 }
 
 // isDigit returns true if the rune is a digit.

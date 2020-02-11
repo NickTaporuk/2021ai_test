@@ -15,7 +15,7 @@ const (
 	WS
 
 	// Literals
-	IDENT // fields, table_name
+	IDENT
 
 	// Keywords
 	SUM
@@ -25,4 +25,7 @@ const (
 	//
 	LBRACKET
 	RBRACKET
+
+	// File
+	FILE
 )
