@@ -34,8 +34,7 @@ archives:
       amd64: x86_64
     files:
       - README.md
-      - data/*
-    format: zip
+#    format: zip
 checksum:
   name_template: 'checksums.txt'
 snapshot:
@@ -70,15 +69,3 @@ brews:
     description: "Software to compute data by the original programing language"
     install: |
       bin.install "2021ai_test"
-
-#dockers:
-#  - dockerfile: build/Dockerfile
-#    image_templates:
-#      - "redeam/cbg:latest"
-#      - "redeam/cbg:{{ .Tag }}"
-#      - "redeam/cbg:v{{ .Major }}.{{ .Minor }}"
-#  - dockerfile: build/Dockerfile.alpine
-#    image_templates:
-#      - "redeam/cbg:latest-alpine"
-#      - "redeam/cbg:{{ .Tag }}-alpine"
-#      - "redeam/cbg:v{{ .Major }}.{{ .Minor }}-alpine"
