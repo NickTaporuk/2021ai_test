@@ -11,7 +11,7 @@ builds:
       - CGO_ENABLED=0
       - GO111MODULE=on
     main: ./cmd/main.go
-    binary: program
+    binary: scalc
     goos:
       - windows
       - linux
