@@ -1,10 +1,11 @@
 FROM ubuntu:latest
 
 WORKDIR /usr/local/bin
-COPY . 2021ai_test
-COPY . testdata
+COPY ./scalc scalc
+COPY ./testdata ./testdata
 
-RUN ls -la /go/src/2021ai && chmod +x /go/src/2021ai/2021ai_test
-RUN ls -la /go/src/2021ai/testdata
+RUN ls -la /usr/local/bin
+RUN ls -la /usr/local/bin/testdata
 
-CMD ["/usr/local/bin/2021ai_test", "[ SUM [ DIF ./testdata/a.txt /testdata/b.txt /testdata/c.txt ] [ INT /testdata/b.txt /testdata/c.txt ] ]"]
+CMD ["/usr/local/bin/scalc", "[ SUM [ DIF ./testdata/a.txt ./testdata/b.txt ./testdata/c.txt ] [ INT ./testdata/b.txt ./testdata/c.txt ] ]"]
+#CMD ["/bin/bash"]
