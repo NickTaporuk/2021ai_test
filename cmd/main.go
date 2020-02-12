@@ -21,26 +21,48 @@ var regularState *terminal.State
 func main() {
 
 	if len(os.Args) > 1 {
-		input := strings.Join(os.Args[1:], " ")
-		r := strings.NewReader(input)
-		p := parser.NewParser(r)
+		runAsOneTimeMode()
+	} else {
+		runAsInteractiveMode()
+	}
+}
 
-		state, err := p.Parse()
-		if err != nil {
-			panic(err)
-			return
-		}
+func handleKey(line string, pos int, key rune) (newLine string, newPos int, ok bool) {
+	if key == '\x03' {
+		// Quit without error on Ctrl^C
+		exit()
+	}
+	return "", 0, false
+}
 
-		fmt.Printf("%v\n", state.List())
+func exit() {
+	// nolint
+	terminal.Restore(0, regularState)
+	fmt.Println()
+	os.Exit(0)
+}
 
-		return
+func runAsOneTimeMode() {
+	input := strings.Join(os.Args[1:], " ")
+	r := strings.NewReader(input)
+	p := parser.NewParser(r)
+
+	state, err := p.Parse()
+	if err != nil {
+		panic(err)
 	}
 
+	data := state.String()
+	fmt.Println(data)
+}
+
+func runAsInteractiveMode() {
 	var err error
 	regularState, err = terminal.MakeRaw(0)
 	if err != nil {
 		panic(err)
 	}
+	// nolint
 	defer terminal.Restore(0, regularState)
 
 	term := terminal.NewTerminal(os.Stdin, "scalc> ")
@@ -64,24 +86,13 @@ func main() {
 
 		res, err := p.Parse()
 		if err != nil {
+			//nolint
 			term.Write([]byte(fmt.Sprintln("Error: " + err.Error())))
 			continue
 		}
+
+		// nolint
 		term.Write([]byte(fmt.Sprintln(res)))
 	}
 
-}
-
-func handleKey(line string, pos int, key rune) (newLine string, newPos int, ok bool) {
-	if key == '\x03' {
-		// Quit without error on Ctrl^C
-		exit()
-	}
-	return "", 0, false
-}
-
-func exit() {
-	terminal.Restore(0, regularState)
-	fmt.Println()
-	os.Exit(0)
 }

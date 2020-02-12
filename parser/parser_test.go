@@ -8,9 +8,10 @@ import (
 )
 
 func TestParser_Parse(t *testing.T) {
-	s := `[ SUM [ INT  a.txt b.txt c.txt ][ DIF [SUM a.txt b.txt] ]
-[DIF a.txt c.txt] ]`
-	//s := `a.txt`
+	s := `[ SUM [ INT  ../testdata/a.txt ../testdata/b.txt ../testdata/c.txt ]
+[ DIF ../testdata/a.txt [SUM ../testdata/a.txt ../testdata/b.txt] ]
+[DIF ../testdata/a.txt ../testdata/c.txt] ]`
+
 	r := strings.NewReader(s)
 	p := NewParser(r)
 

@@ -4,6 +4,13 @@ import (
 	"errors"
 )
 
+var (
+	// ErrorStackIsEmpty use for notify about the structure stack parameter slice is empty
+	ErrorStackIsEmpty = errors.New("can't pop; stack is empty")
+	// ErrorNoElements use for notify about the stack doesn't have element inside
+	ErrorNoElements = errors.New("no elements in stack")
+)
+
 type StringStack struct {
 	Slice []string
 	Pos   int
@@ -28,7 +35,7 @@ func (s *StringStack) Push(a string) {
 func (s *StringStack) Pop() (string, error) {
 	ret, err := s.Top()
 	if err != nil {
-		return "", errors.New("Can't pop; stack is empty!")
+		return "", ErrorStackIsEmpty
 	}
 	s.Pos--
 	return ret, nil
@@ -41,7 +48,7 @@ func (s *StringStack) SafePop() string {
 
 func (s *StringStack) Top() (string, error) {
 	if s.Pos < 0 {
-		return "", errors.New("No elements in stack!")
+		return "", ErrorNoElements
 	}
 	return s.Slice[s.Pos], nil
 }

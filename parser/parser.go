@@ -1,10 +1,10 @@
 package parser
 
 import (
-	"github.com/fatih/set"
 	"io"
 
 	"github.com/NickTaporuk/2021ai_test/scanner"
+	"github.com/NickTaporuk/2021ai_test/set"
 )
 
 // Parser represents a parser.

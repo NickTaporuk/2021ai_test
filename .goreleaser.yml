@@ -1,0 +1,84 @@
+# This is an example goreleaser.yaml file with some sane defaults.
+# Make sure to check the documentation at http://goreleaser.com
+before:
+  hooks:
+    # you may remove this if you don't use vgo
+    - go mod download
+    # you may remove this if you don't need go generate
+    - go generate ./...
+builds:
+  - env:
+      - CGO_ENABLED=0
+      - GO111MODULE=on
+    main: ./main.go
+    goos:
+      - windows
+      - linux
+      - darwin
+      - freebsd
+    goarch:
+      - amd64
+      - arm64
+      - arm
+      - 386
+    ldflags: -s -w -X main.version={{.Version}} -X main.commit={{.ShortCommit}} -X main.date={{.Date}}
+archives:
+  -
+    id: homebrew
+    name_template: "{{ .Binary }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
+    replacements:
+      darwin: Darwin
+      linux: Linux
+      windows: Windows
+      386: i386
+      amd64: x86_64
+    files:
+      - README.md
+      - data/*
+    format: zip
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ .Tag }}-next"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+env_files:
+  # use only one or release will fail!
+  github_token: ~/.gittoken
+brews:
+  -
+    name: 2021ai_test
+    # Github repository to push the tap to.
+    github:
+      owner: NickTaporuk
+      name: homebrew-tap
+
+    url_template: "https://github.com/NickTaporuk/2021ai_test/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+
+    # Git author used to commit to the repository.
+    # Defaults are shown.
+    commit_author:
+      name: NickTaporuk
+      email: nictaporuk@gmail.com
+
+    folder: Formula
+    caveats: "How to use this binary"
+    description: "Software to compute data by the original programing language"
+    install: |
+      bin.install "2021ai_test"
+
+#dockers:
+#  - dockerfile: build/Dockerfile
+#    image_templates:
+#      - "redeam/cbg:latest"
+#      - "redeam/cbg:{{ .Tag }}"
+#      - "redeam/cbg:v{{ .Major }}.{{ .Minor }}"
+#  - dockerfile: build/Dockerfile.alpine
+#    image_templates:
+#      - "redeam/cbg:latest-alpine"
+#      - "redeam/cbg:{{ .Tag }}-alpine"
+#      - "redeam/cbg:v{{ .Major }}.{{ .Minor }}-alpine"

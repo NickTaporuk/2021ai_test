@@ -4,22 +4,41 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"path/filepath"
 	"strings"
 
 	"github.com/NickTaporuk/2021ai_test/operators"
+	"github.com/NickTaporuk/2021ai_test/set"
 	"github.com/NickTaporuk/2021ai_test/stack"
 	"github.com/NickTaporuk/2021ai_test/token"
 	"github.com/NickTaporuk/2021ai_test/utils"
-	"github.com/fatih/set"
+)
+
+var (
+	// ErrorSyntaxShouldBeFileOrOperator is error if some token before doest't have a token of a file
+	// or a token of a operator
+	ErrorSyntaxShouldBeFileOrOperator = errors.New("syntax error with parameters. Before file should be some operator or some file")
+
+	// ErrorSyntaxShouldBeLeftBracketBeforeOperator is error if some token before doest't have a token of
+	// left bracket
+	ErrorSyntaxShouldBeLeftBracketBeforeOperator = errors.New("syntax error. You should write [ before operator SUM, INT, DIF")
+
+	// ErrorSyntaxNoEnoughBrackets use if the app hasn't enough brackets
+	ErrorSyntaxNoEnoughBrackets = errors.New("syntax error. The string doesn't have enought brackets")
+
+	// ErrorTextUnrecognizedToken use if the app has a unrecognized token
+	ErrorTextUnrecognizedToken = "Unrecognized token %s in expression"
+
+	// ErrorTextUnrecognizedOperator use if the app has a unrecognized operator
+	ErrorTextUnrecognizedOperator = errors.New("either unmatched parent or unrecognized operator")
 )
 
 // Scanner is the interface that wraps the basic Scan method.
-//
 // Implementations must not retain p.
 type Scanner interface {
-	Scan() (data set.Interface, err error)
+	Scan() (set set.Interface, err error)
 }
 
 // Scanner represents a lexical scanner.
@@ -46,13 +65,15 @@ func (s *LexicalScanner) read() rune {
 // unread places the previously read rune back on the reader.
 func (s *LexicalScanner) unread() { _ = s.r.UnreadRune() }
 
+// nolint
 // Scan returns the next token and literal value.
 func (s *LexicalScanner) Scan() (res set.Interface, err error) {
 	// validateBrackets is a checker of brackets exists
 	var validateBrackets int
+	// sets is map of sets
 	sets := make(map[int][]set.Interface)
 	ops := stack.NewStringStack()
-	// prev is which a token was last
+	// prev is  a last token which used
 	var prev token.Token
 loop:
 	for {
@@ -69,6 +90,11 @@ loop:
 			tok, lit := s.scanIdent()
 
 			if isFile(lit) {
+
+				if prev != token.SUM && prev != token.INT && prev != token.DIF && prev != token.FILE {
+					return nil, ErrorSyntaxShouldBeFileOrOperator
+				}
+
 				data, err := utils.ReadDataFromFile(lit)
 				if err != nil {
 					return nil, err
@@ -82,6 +108,9 @@ loop:
 			}
 
 			if operators.IsOperator(lit) {
+				if prev != token.LBRACKETRUNE {
+					return nil, ErrorSyntaxShouldBeLeftBracketBeforeOperator
+				}
 				switch lit {
 				case operators.DifferentOperatorLex:
 					ops.Push(operators.DifferentOperatorLex)
@@ -101,7 +130,9 @@ loop:
 						inspect += " (`" + lit + "`)"
 					}
 
-					return nil, errors.New("Unrecognized token " + inspect + " in expression")
+					errStr := fmt.Sprintf(ErrorTextUnrecognizedToken, inspect)
+
+					return nil, errors.New(errStr)
 				}
 			}
 
@@ -112,17 +143,11 @@ loop:
 		case eof:
 			break loop
 		case token.LBRACKETRUNE:
-			{
-				validateBrackets += 1
-				prev = token.LBRACKETRUNE
-				continue
-			}
+			validateBrackets++
+			prev = token.LBRACKETRUNE
+			continue
 		case token.RBRACKETRUNE:
 			{
-
-				if prev == 1 {
-					print("prev = 1")
-				}
 				op, err := ops.Pop()
 				if err != nil {
 					return nil, err
@@ -131,8 +156,12 @@ loop:
 				d := sets[validateBrackets]
 
 				res, err = runOp(op, d)
-				sets[validateBrackets]= nil
-				validateBrackets -= 1
+				if err != nil {
+					return nil, err
+				}
+
+				sets[validateBrackets] = nil
+				validateBrackets--
 
 				if len(sets) > 0 {
 					sets[validateBrackets] = append(sets[validateBrackets], res)
@@ -144,12 +173,15 @@ loop:
 			}
 		default:
 			inspect := string(ch)
-			//if strings.TrimSpace(lit) != "" {
-			//	inspect += " (`" + lit + "`)"
-			//}
 
-			return nil, errors.New("Unrecognized token " + inspect + " in expression")
+			errStr := fmt.Sprintf(ErrorTextUnrecognizedToken, inspect)
+
+			return nil, errors.New(errStr)
 		}
+	}
+
+	if validateBrackets != 0 {
+		return nil, ErrorSyntaxNoEnoughBrackets
 	}
 
 	return res, nil
@@ -158,12 +190,12 @@ loop:
 func runOp(opName string, data []set.Interface) (set.Interface, error) {
 	op := operators.FindOperatorFromString(opName)
 	if op == nil {
-		return nil, errors.New("Either unmatched paren or unrecognized operator")
+		return nil, ErrorTextUnrecognizedOperator
 	}
 
-	res := op.Operation(data...)
+	res, err := op.Operation(data...)
 
-	return res, nil
+	return res, err
 }
 
 // scanWhitespace consumes the current rune and all contiguous whitespace.
@@ -174,13 +206,19 @@ func (s *LexicalScanner) scanWhitespace() (tok token.Token, lit string) {
 
 	// Read every subsequent whitespace character into the buffer.
 	// Non-whitespace characters and EOF will cause the loop to exit.
+
 	for {
-		if ch := s.read(); ch == eof {
-			break
-		} else if !isWhitespace(ch) {
+		ch := s.read()
+
+		if !isWhitespace(ch) {
 			s.unread()
 			break
-		} else {
+		}
+
+		switch ch {
+		case eof:
+			break
+		default:
 			buf.WriteRune(ch)
 		}
 	}
@@ -193,22 +231,43 @@ func (s *LexicalScanner) scanIdent() (tok token.Token, lit string) {
 	// Create a buffer and read the current character into it.
 	var buf bytes.Buffer
 	buf.WriteRune(s.read())
-
+	tok = token.IDENT
 	// Read every subsequent ident character into the buffer.
 	// Non-ident characters and EOF will cause the loop to exit.
 	for {
-		if ch := s.read(); ch == eof {
-			break
-		} else if !isLetter(ch) && !isDigit(ch) {
+		ch := s.read()
+
+		if !isLetter(ch) && !isDigit(ch) {
 			s.unread()
 			break
-		} else {
+		}
+
+		switch ch {
+		case eof:
+			break
+		default:
 			_, _ = buf.WriteRune(ch)
 		}
 	}
 
+	lit = buf.String()
+
+	if isFile(lit) {
+		tok = token.FILE
+
+		return tok, lit
+	}
+
+	switch lit {
+	case operators.DifferentOperatorLex:
+		tok = token.DIF
+	case operators.IntersectionOperatorLex:
+		tok = token.INT
+	case operators.UnionOperatorLex:
+		tok = token.SUM
+	}
 	// Otherwise return as a regular identifier.
-	return token.IDENT, buf.String()
+	return tok, lit
 }
 
 var eof = rune(0)
