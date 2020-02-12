@@ -34,6 +34,10 @@ archives:
       amd64: x86_64
     files:
       - README.md
+      - testdata/a.txt
+      - testdata/b.txt
+      - testdata/c.txt
+      - testdata/d.txt
 #    format: zip
 checksum:
   name_template: 'checksums.txt'
@@ -50,7 +54,7 @@ env_files:
   github_token: ~/.gittoken
 brews:
   -
-    name: 2021ai_test
+    name: scalc
     # Github repository to push the tap to.
     github:
       owner: NickTaporuk
@@ -68,4 +72,4 @@ brews:
     caveats: "How to use this binary"
     description: "Software to compute data by the original programing language"
     install: |
-      bin.install "2021ai_test"
+      bin.install "scalc"
