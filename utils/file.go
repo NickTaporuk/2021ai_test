@@ -2,13 +2,22 @@ package utils
 
 import (
 	"bufio"
-	"github.com/fatih/set"
 	"os"
+	"path/filepath"
 	"strconv"
+
+	"github.com/fatih/set"
 )
 
+// ReadDataFromFile is helper which chech file path and read all data from the file
 func ReadDataFromFile(path string) (st set.Interface, err error) {
-	f, err := os.Open(path)
+
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return nil, err
+	}
+
+	f, err := os.Open(abs)
 	defer f.Close()
 
 	if err != nil {

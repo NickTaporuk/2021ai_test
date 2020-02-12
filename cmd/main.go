@@ -21,7 +21,7 @@ var regularState *terminal.State
 func main() {
 
 	if len(os.Args) > 1 {
-		input := strings.Join(os.Args[1:], "")
+		input := strings.Join(os.Args[1:], " ")
 		r := strings.NewReader(input)
 		p := parser.NewParser(r)
 

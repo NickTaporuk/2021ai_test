@@ -48,12 +48,11 @@ func (s *LexicalScanner) unread() { _ = s.r.UnreadRune() }
 
 // Scan returns the next token and literal value.
 func (s *LexicalScanner) Scan() (res set.Interface, err error) {
-	// validateBrackets
+	// validateBrackets is a checker of brackets exists
 	var validateBrackets int
-	//sets := stack.NewSetStack()
 	sets := make(map[int][]set.Interface)
 	ops := stack.NewStringStack()
-	//
+	// prev is which a token was last
 	var prev token.Token
 loop:
 	for {
@@ -65,7 +64,6 @@ loop:
 			s.unread()
 			s.scanWhitespace()
 			continue
-			//return tok, lit, nil
 		} else if isLetter(ch) {
 			s.unread()
 			tok, lit := s.scanIdent()
@@ -133,7 +131,7 @@ loop:
 				d := sets[validateBrackets]
 
 				res, err = runOp(op, d)
-				//delete(sets, validateBrackets)
+				sets[validateBrackets]= nil
 				validateBrackets -= 1
 
 				if len(sets) > 0 {
