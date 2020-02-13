@@ -1,9 +1,10 @@
 # SCALC
 
 ## Summary
-    Package was developed as the test task for 2021ai comapny
+    Package was developed as the test task for 2021ai comapany
 ### Package directories structure
-    ├── cmd         - all scripts of running cli
+    ├── cmd         - all scripts to run solution
+    ├── dist        - all builded binaries files
     ├── operators   - initialize new operator and add logic of operation for this operator
     ├── parser      - represents a syntax parser.
     ├── scanner     - represents a lexical scanner.
@@ -46,6 +47,9 @@ git clone git@github.com/NickTaporuk/2021ai_test.git
 cd 2021ai_test
 go build -o scalc cdm/main.go
 ```
+
+## SOURCE CODE
+    You can find all builded binaries inside the directory dist
 ## Usage
     The Solution can work in 2 mode: a onetime running or as a interactive mode.
     
