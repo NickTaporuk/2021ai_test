@@ -1,7 +1,7 @@
 # SCALC
 
 ## Summary
-    Package was developed as the test task for 2021ai comapany
+    Package was developed as the test task for 2021ai company
 ### Package directories structure
     ├── cmd         - all scripts to run solution
     ├── dist        - all builded binaries files
