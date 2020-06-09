@@ -45,7 +45,7 @@ brew upgrade scalc
 ```bash
 git clone git@github.com/NickTaporuk/2021ai_test.git
 cd 2021ai_test
-go build -o scalc cdm/main.go
+go build -o scalc cmd/main.go
 ```
 
 ## SOURCE CODE
